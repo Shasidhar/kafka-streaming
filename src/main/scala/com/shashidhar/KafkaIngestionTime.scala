@@ -1,6 +1,7 @@
 package com.shashidhar
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
 
 object KafkaIngestionTime {
   def main(args: Array[String]): Unit = {
@@ -16,13 +17,24 @@ object KafkaIngestionTime {
       .format("kafka")
       .option("kafka.bootstrap.servers", "localhost:9092")
       .option("subscribe", "wordcount")
-      .option("startingOffsets", """{"wordcount":{"0":0}}""")
       .load()
 
     val data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)", "CAST(timestamp AS LONG)")
       .as[(String, String, Long)]
 
-    val query = data.writeStream.format("console").outputMode("append").start()
+    val wordsDs = data.flatMap(line => line._2.split(" ").map(word => {
+      Thread.sleep(15000)
+      (word, line._3)
+    })).toDF("word", "timestamp")
+
+    val windowedCount = wordsDs
+      .groupBy(
+        window($"timestamp", "15 seconds")
+      )
+      .count()
+      .orderBy("window")
+
+    val query = windowedCount.writeStream.format("console").outputMode("append").start()
 
     query.awaitTermination()
   }

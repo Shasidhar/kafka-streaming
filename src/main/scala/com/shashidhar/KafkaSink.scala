@@ -2,15 +2,12 @@ package com.shashidhar
 
 import org.apache.spark.sql.SparkSession
 
-object KafkaWordCount {
+object KafkaSink {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder.
       master("local")
-      .appName("example")
+      .appName("kafkasink")
       .getOrCreate()
-
-    import spark.implicits._
-//    spark.sparkContext.setLogLevel("ERROR")
 
     val df = spark
       .readStream
@@ -23,13 +20,16 @@ object KafkaWordCount {
       .as[(String, String)]
 
     val results = data
-                    .map(_._2)
-                    .flatMap(value => value.split("\\s+"))
-                    .groupByKey(_.toLowerCase)
-                    .count()
+      .map(_._2)
+      .flatMap(value => value.split("\\s+"))
+      .groupByKey(_.toLowerCase)
+      .count()
 
-    val query = results.writeStream.format("console").outputMode("complete").start()
+    val query = results.writeStream.format("kafka")
+      .outputMode("complete")
+      .option("kafka.bootstrap.servers", "localhost:9092")
+      .start()
     query.awaitTermination()
-
   }
+
 }
