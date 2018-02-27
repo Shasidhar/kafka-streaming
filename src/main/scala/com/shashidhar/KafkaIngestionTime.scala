@@ -2,7 +2,7 @@ package com.shashidhar
 
 import org.apache.spark.sql.SparkSession
 
-object KafkaWordCount {
+object KafkaIngestionTime {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder.
       master("local")
@@ -10,7 +10,6 @@ object KafkaWordCount {
       .getOrCreate()
 
     import spark.implicits._
-//    spark.sparkContext.setLogLevel("ERROR")
 
     val df = spark
       .readStream
@@ -20,17 +19,11 @@ object KafkaWordCount {
       .option("startingOffsets", """{"wordcount":{"0":0}}""")
       .load()
 
-    val data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-      .as[(String, String)]
+    val data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)", "CAST(timestamp AS LONG)")
+      .as[(String, String, Long)]
 
-    val results = data
-                    .map(_._2)
-                    .flatMap(value => value.split("\\s+"))
-                    .groupByKey(_.toLowerCase)
-                    .count()
+    val query = data.writeStream.format("console").outputMode("append").start()
 
-    val query = results.writeStream.format("console").outputMode("complete").start()
     query.awaitTermination()
-
   }
 }
