@@ -1,7 +1,7 @@
-# Dynamic-streaming
+# Kafka-streaming
 Interactive data analysis with Spark streaming session code repo
 
-##PREREQUISITE
+# PREREQUISITE
 
 * Java
 * Scala
