@@ -24,7 +24,6 @@ object FileSink {
       .outputMode("append")
       .option("checkpointLocation", "src/main/filesink/chkpoint")
       .option("path", "src/main/filesink/output")
-      .option("kafka.bootstrap.servers", "localhost:9092")
       .start()
     query.awaitTermination()
   }
