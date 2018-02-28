@@ -38,8 +38,8 @@ object KafkaSinkUpdate {
       )
       .count()
 
-  val result = windowedCount.withColumn("key", lit("").cast(StringType))
-    .selectExpr("key","concat(CAST(window.start AS String)," +
+  val result = windowedCount
+    .selectExpr("concat(CAST(window.start AS String)," +
     "','" +
     ",CAST(window.end AS String)," +
     "','" +
