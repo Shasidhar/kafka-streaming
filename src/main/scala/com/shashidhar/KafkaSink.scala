@@ -8,27 +8,27 @@ object KafkaSink {
       master("local")
       .appName("kafkasink")
       .getOrCreate()
+    import spark.implicits._
+    spark.sparkContext.setLogLevel("ERROR")
 
     val df = spark
       .readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", "localhost:9092")
       .option("subscribe", "wordcount")
+      .option("startingOffsets", "earliest")
       .load()
 
-    val data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-      .as[(String, String)]
+    val data = df.selectExpr("CAST(value AS STRING)")
+      .as[(String)]
 
-    val results = data
-      .map(_._2)
-      .flatMap(value => value.split("\\s+"))
-      .groupByKey(_.toLowerCase)
-      .count()
-
-    val query = results.writeStream.format("kafka")
-      .outputMode("complete")
+    val query = data.writeStream.format("kafka")
+      .outputMode("append")
       .option("kafka.bootstrap.servers", "localhost:9092")
+      .option("topic","wcOutput")
+      .option("checkpointLocation", "src/main/kafkasink/chkpoint")
       .start()
+
     query.awaitTermination()
   }
 

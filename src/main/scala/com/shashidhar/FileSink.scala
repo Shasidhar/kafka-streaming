@@ -8,27 +8,22 @@ object FileSink {
       master("local")
       .appName("kafkasink")
       .getOrCreate()
+    import spark.implicits._
 
     val df = spark
       .readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", "localhost:9092")
       .option("subscribe", "wordcount")
+      .option("startingOffsets", "earliest")
       .load()
 
-    val data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-      .as[(String, String)]
+    val data = df.selectExpr("CAST(value AS STRING)").as[String]
 
-    val results = data
-      .map(_._2)
-      .flatMap(value => value.split("\\s+"))
-      .groupByKey(_.toLowerCase)
-      .count()
-
-    val query = results.writeStream.format("parquet")
-      .outputMode("complete")
-      .option("checkpointLocation", "/Users/mcbk01/interests/structuredstreaming/kafka-streaming/src/main/filesink/chkpoint")
-      .option("path", "/Users/mcbk01/interests/structuredstreaming/kafka-streaming/src/main/filesink/output")
+    val query = data.writeStream.format("text")
+      .outputMode("append")
+      .option("checkpointLocation", "src/main/filesink/chkpoint")
+      .option("path", "src/main/filesink/output")
       .option("kafka.bootstrap.servers", "localhost:9092")
       .start()
     query.awaitTermination()

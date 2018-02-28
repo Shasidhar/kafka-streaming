@@ -9,29 +9,33 @@ object KafkaSource {
       .appName("kafkasource")
       .getOrCreate()
 
+    import spark.implicits._
+    spark.sparkContext.setLogLevel("ERROR")
+
     //Subscribe to one topic
-    val oneTopifDF = spark
-      .read
-      .format("kafka")
-      .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
-      .option("subscribe", "topic1")
-      .load()
-    oneTopifDF.selectExpr("CAST(value AS STRING)") //Same schema as what we get in readStream
-      .as[(String)]
-    oneTopifDF.show()
+//    val oneTopifDF = spark
+//      .read
+//      .format("kafka")
+//      .option("kafka.bootstrap.servers", "localhost:9092")
+//      .option("subscribe", "wordcount")
+//      .option("startingOffsets", "earliest")
+//      .load()
+//    val result = oneTopifDF.selectExpr("CAST(value AS STRING)","topic","partition","offset") //Same schema as what we get in readStream
+//      .as[(String,String,String,String)]
+//      result.show()
 
     //Subscribe to multiple topics
     val multipleTopicdf = spark
       .read
       .format("kafka")
-      .option("kafka.bootstrap.servers", "host1:port1,host2:port2")
-      .option("subscribe", "topic1,topic2")
-//      .option("startingOffsets", """{"topic1":{"0":23,"1":-2},"topic2":{"0":-2}}""")
-//      .option("endingOffsets", """{"topic1":{"0":50,"1":-1},"topic2":{"0":-1}}""")
+      .option("kafka.bootstrap.servers", "localhost:9092")
+      .option("subscribe", "wordcount,wcOutput")
+      .option("startingOffsets", """{"wordcount":{"0":20},"wcOutput":{"0":0}}""")
+      .option("endingOffsets", """{"wordcount":{"0":25},"wcOutput":{"0":5}}""")
       .load()
-    multipleTopicdf.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-      .as[(String, String)]
-    multipleTopicdf.show()
+    val result1 = multipleTopicdf.selectExpr("CAST(value AS STRING)","topic","partition","offset") //Same schema as what we get in readStream
+      .as[(String,String,String,String)]
+    result1.show()
 
   }
 }
